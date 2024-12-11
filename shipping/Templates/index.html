@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Form</title>
+</head>
+<body>
+    <h2>Shipping Form</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label>From City:</label><input type="text" name="from_city" required><br><br>
+        <label>From Zipcode:</label><input type="text" name="from_zip" required><br><br>
+        <label>To City:</label><input type="text" name="to_city" required><br><br>
+        <label>To Zipcode:</label><input type="text" name="to_zip" required><br><br>
+        <label>Product ID:</label><input type="text" name="product_id" required><br><br>
+        <label>Product Name:</label><input type="text" name="product_name" required><br><br>
+        <label>Product Type:</label><input type="text" name="product_type" required><br><br>
+        <button type="submit" name="submit1">Submit</button>
+    </form>
+    <form method="get" action="{% url 'generate_pdf' %}">
+        <button type="submit" name="submit2">Generate PDF</button>
+    </form>
+    <br><br>
+        {% if message %}
+        <p id="msg" style="color: green; font-weight: bold;">{{message}}</p>
+
+        <script>
+            setTimeout(function() {
+                var m=document.getElementById("msg");
+                if (m){ m.style.display='none';} }, 2000);
+        </script>
+        {% endif %}
+</body>
+</html>
