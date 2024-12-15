@@ -11,7 +11,9 @@ from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 #from reportlab.lib.units import inch
 
+from django.core.mail import send_mail
 from reportlab.graphics.shapes import Drawing
+from django.conf import settings
 
 filePath=Path("labels.csv")
 def index(request):
@@ -23,19 +25,22 @@ def index(request):
         id=request.POST.get("product_id")
         product_name=request.POST.get("product_name")
         product_type=request.POST.get("product_type")
+        email=request.POST.get("email")
 
+        newDate=datetime.datetime.now().strftime('%d/%m/%Y')
         fileEx=filePath.exists()
         with open(filePath,'a',newline='') as f:
             write=csv.writer(f)
             if not fileEx:
-                write.writerow(["FROM CITY","FROM ZIP","TO CITY","TO ZIP","PRODUCT ID","PRODUCT NAME","PRODUCT TYPE"])
+                write.writerow(["FROM CITY","FROM ZIP","TO CITY","TO ZIP","PRODUCT ID","PRODUCT NAME","PRODUCT TYPE","DATE","EMAIL"])
 
-            write.writerow([fcity,fzip,tocity,tozip,id,product_name,product_type])
+            write.writerow([fcity,fzip,tocity,tozip,id,product_name,product_type,newDate,email])  
         return render(request,"index.html",{"message":"Data added"})
 
     return render(request,"index.html")
 
 def generate_pdf(request):
+    email_addr=[]
     buffer=io.BytesIO()
     pdf=canvas.Canvas(buffer,pagesize=letter)
     
@@ -91,10 +96,17 @@ def generate_pdf(request):
                 qr_draw.add(qr)
                 renderPDF.draw(qr_draw,pdf,400,540)
                 pdf.line(40,490,560,490)
-
+                email_addr.append(r[8])
                 pdf.showPage()
     pdf.save()            
     buffer.seek(0)
+    for e in email_addr:
+            send_mail(
+                subject="Shipping Details Submitted",
+                message="Thank you for submitting your shipping details.",
+                from_email=settings.HOST_USER,
+                recipient_list=[e],
+            )
     response=HttpResponse(buffer,content_type='application/pdf')
     response['Content-Disposition']='attachment; filename="shipping.pdf" '
     return response
