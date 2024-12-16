@@ -10,8 +10,7 @@ from reportlab.graphics.barcode import code128
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 #from reportlab.lib.units import inch
-
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from reportlab.graphics.shapes import Drawing
 from django.conf import settings
 
@@ -40,11 +39,9 @@ def index(request):
     return render(request,"index.html")
 
 def generate_pdf(request):
-    email_addr=[]
     buffer=io.BytesIO()
     pdf=canvas.Canvas(buffer,pagesize=letter)
     
-
     if filePath.exists():
         with open(filePath,'r') as f:
             reader=csv.reader(f)
@@ -96,18 +93,81 @@ def generate_pdf(request):
                 qr_draw.add(qr)
                 renderPDF.draw(qr_draw,pdf,400,540)
                 pdf.line(40,490,560,490)
-                email_addr.append(r[8])
                 pdf.showPage()
     pdf.save()            
     buffer.seek(0)
-    for e in email_addr:
-            send_mail(
-                subject="Shipping Details Submitted",
-                message="Thank you for submitting your shipping details.",
-                from_email=settings.HOST_USER,
-                recipient_list=[e],
-            )
     response=HttpResponse(buffer,content_type='application/pdf')
     response['Content-Disposition']='attachment; filename="shipping.pdf" '
     return response
+
+
+def send_email_addr(request):
+    if "submit3" in request.POST:
+        target_email=request.POST.get("target_email")
+        if filePath.exists():
+            with open(filePath,'r') as f:
+                reader = csv.reader(f)
+                next(reader)
+
+                for r in reader:
+                    if r[8]==target_email:
+                        buffer=io.BytesIO()
+                        pdf=canvas.Canvas(buffer,pagesize=letter)
+
+                        pdf.setFont("Helvetica-Bold",18)
+                        pdf.drawString(220,750,"SHIPPING BILL")
+                        pdf.setFont("Times-Bold",11)
+                        pdf.drawString(454,750,"Bill Number: "+r[4])
+                        pdf.drawString(454,730,f"Bill Date: "+r[7])
+                        pdf.line(40,720,560,720)
+
+                        pdf.setFont("Helvetica-Bold",14)
+                        pdf.drawString(50,700,"FROM ADDRESS:")
+                        pdf.setFont("Times-Bold",12)
+                        pdf.drawString(74,680,"FROM CITY: "+r[0])
+                        pdf.drawString(74,660,"ZIP CODE: "+r[1])
+
+                        pdf.setFont("Helvetica-Bold",14)
+                        pdf.drawString(380,700,"TO ADDRESS:")
+                        pdf.setFont("Times-Bold",12)
+                        pdf.drawString(404,680,"TO CITY: " +r[2])
+                        pdf.drawString(404,660,"ZIP CODE: "+r[3])
+
+                        pdf.setFont("Helvetica-Bold",14)
+                        pdf.drawString(50,630,"PRODUCT DETAILS")
+                        pdf.setFont("Times-Bold",12)
+                        pdf.drawString(74,610,"PRODUCT ID: " +r[4])
+                        pdf.drawString(74,590,"PRODUCT NAME: "+r[5])
+                        pdf.drawString(74,570,"PRODUCT TYPE: "+r[6])
+
+                        pdf.setFont("Helvetica-Bold",14)
+                        pdf.drawString(50,540,"BAR CODE")
+                        code=f"{r[4]}-{r[0]}-{r[2]}"
+                        barcode=code128.Code128(code,barHeight=36,barWidth=1.3)
+                        barcode.drawOn(pdf,60,500)
+
+                        pdf.drawString(380,630,"QR CODE")
+                        qr=QrCodeWidget(code)
+                        qr_draw=Drawing(56,56)
+                        qr_draw.add(qr)
+                        renderPDF.draw(qr_draw,pdf,400,540)
+                        pdf.line(40,490,560,490)
+                        pdf.showPage()
+                        pdf.save()
+                        buffer.seek(0)
+
+                        email=EmailMessage(
+                            subject="Shipping Label Details",
+                            body=f"Dear Customer,\n\nPlease find your shipping bill attached.\n\n\nRegards,\nShipping Team.",
+                            from_email=settings.EMAIL_HOST_USER,
+                            to=[target_email],
+                        )
+                        email.attach("shipping.pdf",buffer.getvalue(),"application/pdf")
+                        email.send()
+                        buffer.close()
+
+                        return render(request,"index.html",{"message":"Email sent with pdf"})    
+        return render(request,"index.html",{"message":"Email not found"})
+                       
+    return render(request,"index.html")
   
