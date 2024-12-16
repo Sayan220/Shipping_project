@@ -130,7 +130,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True 
 EMAIL_USE_SSL = False  
 HOST_USER = 'sayanbanerjeee2000@gmail.com'
-EMAIL_HOST_PASSWORD = 'Kakarot@0085'
+EMAIL_HOST_PASSWORD = 
 
 
 DEFAULT_FROM_EMAIL = 'sayanbanerjeee2000@gmail.com' 
