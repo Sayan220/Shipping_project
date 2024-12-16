@@ -22,6 +22,14 @@
         <button type="submit" name="submit2">Generate PDF</button>
     </form>
     <br><br>
+    <form method="POST" action="send-email/">
+        {% csrf_token %}
+        <h3>Send Email with PDF</h3>
+        <input type="email" name="target_email" placeholder="Target Email" required><br><br>
+        <button type="submit" name="submit3">Send Email</button>
+    </form>
+    <br><br>
+    
         {% if message %}
         <p id="msg" style="color: green; font-weight: bold;">{{message}}</p>
 
