@@ -104,70 +104,73 @@ def generate_pdf(request):
 def send_email_addr(request):
     if "submit3" in request.POST:
         target_email=request.POST.get("target_email")
-        if filePath.exists():
-            with open(filePath,'r') as f:
-                reader = csv.reader(f)
-                next(reader)
+        l1=[]
+        with open(filePath,'r') as f:
+            reader = csv.reader(f)
+            next(reader)
+            for r in reader:
+                if r[8]==target_email:
+                    l1.append(r)
+        if not l1:
+            return render(request,"index.html",{"message":"Email not found"})
 
-                for r in reader:
-                    if r[8]==target_email:
-                        buffer=io.BytesIO()
-                        pdf=canvas.Canvas(buffer,pagesize=letter)
+        email=EmailMessage(
+                subject="Shipping Label Details",
+                body=f"Dear Customer,\n\nPlease find your shipping bill attached.\n\n\nRegards,\nShipping Team.",
+                from_email=settings.EMAIL_HOST_USER,
+                to=[target_email],
+                )
+        for r in l1:
+            buffer=io.BytesIO()
+            pdf=canvas.Canvas(buffer,pagesize=letter)
 
-                        pdf.setFont("Helvetica-Bold",18)
-                        pdf.drawString(220,750,"SHIPPING BILL")
-                        pdf.setFont("Times-Bold",11)
-                        pdf.drawString(454,750,"Bill Number: "+r[4])
-                        pdf.drawString(454,730,f"Bill Date: "+r[7])
-                        pdf.line(40,720,560,720)
+            pdf.setFont("Helvetica-Bold",18)
+            pdf.drawString(220,750,"SHIPPING BILL")
+            pdf.setFont("Times-Bold",11)
+            pdf.drawString(454,750,"Bill Number: "+r[4])
+            pdf.drawString(454,730,f"Bill Date: "+r[7])
+            pdf.line(40,720,560,720)
 
-                        pdf.setFont("Helvetica-Bold",14)
-                        pdf.drawString(50,700,"FROM ADDRESS:")
-                        pdf.setFont("Times-Bold",12)
-                        pdf.drawString(74,680,"FROM CITY: "+r[0])
-                        pdf.drawString(74,660,"ZIP CODE: "+r[1])
+            pdf.setFont("Helvetica-Bold",14)
+            pdf.drawString(50,700,"FROM ADDRESS:")
+            pdf.setFont("Times-Bold",12)
+            pdf.drawString(74,680,"FROM CITY: "+r[0])
+            pdf.drawString(74,660,"ZIP CODE: "+r[1])
 
-                        pdf.setFont("Helvetica-Bold",14)
-                        pdf.drawString(380,700,"TO ADDRESS:")
-                        pdf.setFont("Times-Bold",12)
-                        pdf.drawString(404,680,"TO CITY: " +r[2])
-                        pdf.drawString(404,660,"ZIP CODE: "+r[3])
+            pdf.setFont("Helvetica-Bold",14)
+            pdf.drawString(380,700,"TO ADDRESS:")
+            pdf.setFont("Times-Bold",12)
+            pdf.drawString(404,680,"TO CITY: " +r[2])
+            pdf.drawString(404,660,"ZIP CODE: "+r[3])
 
-                        pdf.setFont("Helvetica-Bold",14)
-                        pdf.drawString(50,630,"PRODUCT DETAILS")
-                        pdf.setFont("Times-Bold",12)
-                        pdf.drawString(74,610,"PRODUCT ID: " +r[4])
-                        pdf.drawString(74,590,"PRODUCT NAME: "+r[5])
-                        pdf.drawString(74,570,"PRODUCT TYPE: "+r[6])
+            pdf.setFont("Helvetica-Bold",14)
+            pdf.drawString(50,630,"PRODUCT DETAILS")
+            pdf.setFont("Times-Bold",12)
+            pdf.drawString(74,610,"PRODUCT ID: " +r[4])
+            pdf.drawString(74,590,"PRODUCT NAME: "+r[5])
+            pdf.drawString(74,570,"PRODUCT TYPE: "+r[6])
 
-                        pdf.setFont("Helvetica-Bold",14)
-                        pdf.drawString(50,540,"BAR CODE")
-                        code=f"{r[4]}-{r[0]}-{r[2]}"
-                        barcode=code128.Code128(code,barHeight=36,barWidth=1.3)
-                        barcode.drawOn(pdf,60,500)
+            pdf.setFont("Helvetica-Bold",14)
+            pdf.drawString(50,540,"BAR CODE")
+            code=f"{r[4]}-{r[0]}-{r[2]}"
+            barcode=code128.Code128(code,barHeight=36,barWidth=1.3)
+            barcode.drawOn(pdf,60,500)
 
-                        pdf.drawString(380,630,"QR CODE")
-                        qr=QrCodeWidget(code)
-                        qr_draw=Drawing(56,56)
-                        qr_draw.add(qr)
-                        renderPDF.draw(qr_draw,pdf,400,540)
-                        pdf.line(40,490,560,490)
-                        pdf.showPage()
-                        pdf.save()
-                        buffer.seek(0)
+            pdf.drawString(380,630,"QR CODE")
+            qr=QrCodeWidget(code)
+            qr_draw=Drawing(56,56)
+            qr_draw.add(qr)
+            renderPDF.draw(qr_draw,pdf,400,540)
+            pdf.line(40,490,560,490)
+            pdf.save()
+            buffer.seek(0)
+           
+            email.attach("shipping.pdf",buffer.getvalue(),"application/pdf")
+            buffer.close()
 
-                        email=EmailMessage(
-                            subject="Shipping Label Details",
-                            body=f"Dear Customer,\n\nPlease find your shipping bill attached.\n\n\nRegards,\nShipping Team.",
-                            from_email=settings.EMAIL_HOST_USER,
-                            to=[target_email],
-                        )
-                        email.attach("shipping.pdf",buffer.getvalue(),"application/pdf")
-                        email.send()
-                        buffer.close()
-
-                        return render(request,"index.html",{"message":"Email sent with pdf"})    
-        return render(request,"index.html",{"message":"Email not found"})
+        email.send()
+        print(l1)
+        return render(request,"index.html",{"message":"Email sent with pdf"})    
                        
     return render(request,"index.html")
   
