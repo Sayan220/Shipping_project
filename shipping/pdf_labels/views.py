@@ -114,12 +114,6 @@ def send_email_addr(request):
         if not l1:
             return render(request,"index.html",{"message":"Email not found"})
 
-        email=EmailMessage(
-                subject="Shipping Label Details",
-                body=f"Dear Customer,\n\nPlease find your shipping bill attached.\n\n\nRegards,\nShipping Team.",
-                from_email=settings.EMAIL_HOST_USER,
-                to=[target_email],
-                )
         for r in l1:
             buffer=io.BytesIO()
             pdf=canvas.Canvas(buffer,pagesize=letter)
@@ -165,10 +159,15 @@ def send_email_addr(request):
             pdf.save()
             buffer.seek(0)
            
-            email.attach("shipping.pdf",buffer.getvalue(),"application/pdf")
-            buffer.close()
-
-        email.send()
+            email=EmailMessage(
+                 subject="Shipping Label Details",
+                 body=f"Dear Customer,\n\nPlease find your shipping bill attached.\n\nProduct ID:{r[4]}\n\nProduct Name:{r[5]}\n\n\nRegards,\nShipping Team.",
+                 from_email=settings.EMAIL_HOST_USER,
+                 to=[target_email],
+                )
+            email.attach("shipping.pdf",buffer.getvalue(),"application/pdf")         
+            email.send()
+            buffer.close() 
         print(l1)
         return render(request,"index.html",{"message":"Email sent with pdf"})    
                        
